@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grafici Payoff Opzioni</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    .canvas-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+    }
+    canvas {
+      border: 1px solid black;
+      margin-top: 20px;
+    }
+    .controls {
+      margin: 20px;
+    }
+    .slider-label {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Grafici Payoff Opzioni</h1>
+  
+  <div class="controls">
+    <label class="slider-label">Prezzo di esercizio (Strike Price):</label>
+    <input type="range" id="strikeSlider" min="50" max="150" value="100">
+    <span id="strikeValue">100</span> €
+  </div>
+
+  <div class="controls">
+    <label class="slider-label">Premium:</label>
+    <input type="range" id="premiumSlider" min="0" max="50" value="10">
+    <span id="premiumValue">10</span> €
+  </div>
+
+  <div class="controls">
+    <label class="slider-label">Scadenza:</label>
+    <input type="date" id="expirationDate">
+  </div>
+
+  <div class="controls">
+    <label class="slider-label">Prezzo:</label>
+    <input type="number" id="priceInput" value="100">
+    <span id="priceValue">100</span> €
+  </div>
+
+  <div class="controls">
+    <label class="slider-label">Posizione (Quantità di opzioni):</label>
+    <input type="number" id="quantityInput" value="1">
+    <span id="quantityValue">1</span>
+  </div>
+
+  <div class="canvas-container">
+    <div>
+      <h3>Call Long</h3>
+      <canvas id="callLongCanvas" width="400" height="300"></canvas>
+    </div>
+    <div>
+      <h3>Call Short</h3>
+      <canvas id="callShortCanvas" width="400" height="300"></canvas>
+    </div>
+    <div>
+      <h3>Put Long</h3>
+      <canvas id="putLongCanvas" width="400" height="300"></canvas>
+    </div>
+    <div>
+      <h3>Put Short</h3>
+      <canvas id="putShortCanvas" width="400" height="300"></canvas>
+    </div>
+  </div>
+
+  <script>
+    // Seleziona gli elementi
+    const strikeSlider = document.getElementById("strikeSlider");
+    const strikeValue = document.getElementById("strikeValue");
+    const premiumSlider = document.getElementById("premiumSlider");
+    const premiumValue = document.getElementById("premiumValue");
+    const expirationDate = document.getElementById("expirationDate");
+    const priceInput = document.getElementById("priceInput");
+    const priceValue = document.getElementById("priceValue");
+    const quantityInput = document.getElementById("quantityInput");
+    const quantityValue = document.getElementById("quantityValue");
+
+    const canvases = {
+      callLong: document.getElementById("callLongCanvas"),
+      callShort: document.getElementById("callShortCanvas"),
+      putLong: document.getElementById("putLongCanvas"),
+      putShort: document.getElementById("putShortCanvas"),
+    };
+
+    let strikePrice = parseInt(strikeSlider.value);
+    let premium = parseInt(premiumSlider.value);
+
+    function drawChart(canvas, payoffFunction, color) {
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const originX = 50;
+      const originY = canvas.height / 2;
+
+      ctx.beginPath();
+      ctx.moveTo(originX, 0);
+      ctx.lineTo(originX, canvas.height);
+      ctx.moveTo(0, originY);
+      ctx.lineTo(canvas.width, originY);
+      ctx.strokeStyle = "black";
+      ctx.stroke();
+
+      ctx.font = "12px Arial";
+      ctx.fillText("Prezzo (S)", canvas.width / 2, canvas.height - 10);
+      ctx.fillText("Profitto / Perdita", 10, canvas.height / 2 - 10);
+
+      for (let i = 50; i <= 150; i += 20) {
+        const x = originX + (i - 50) * 3;
+        ctx.fillText(i, x - 10, originY + 15);
+      }
+      for (let j = -80; j <= 80; j += 20) {
+        const y = originY - j * 2;
+        ctx.fillText(j, originX - 30, y + 5);
+      }
+
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+
+      for (let S = 50; S <= 150; S++) {
+        const x = originX + (S - 50) * 3;
+        const y = originY - payoffFunction(S) * 2;
+
+        if (S === 50) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+
+      ctx.stroke();
+    }
+
+    function updateCharts() {
+      strikePrice = parseInt(strikeSlider.value);
+      premium = parseInt(premiumSlider.value);
+      const price = parseInt(priceInput.value);
+      const quantity = parseInt(quantityInput.value);
+
+      strikeValue.textContent = strikePrice;
+      premiumValue.textContent = premium;
+      priceValue.textContent = price;
+      quantityValue.textContent = quantity;
+
+      drawChart(
+        canvases.callLong,
+        (S) => quantity * (Math.max(S - strikePrice, 0) - premium),
+        "blue"
+      );
+      drawChart(
+        canvases.callShort,
+        (S) => quantity * (-(Math.max(S - strikePrice, 0) - premium)),
+        "red"
+      );
+      drawChart(
+        canvases.putLong,
+        (S) => quantity * (Math.max(strikePrice - S, 0) - premium),
+        "green"
+      );
+      drawChart(
+        canvases.putShort,
+        (S) => quantity * (-(Math.max(strikePrice - S, 0) - premium)),
+        "orange"
+      );
+    }
+
+    priceInput.addEventListener("input", updateCharts);
+    quantityInput.addEventListener("input", updateCharts);
+    strikeSlider.addEventListener("input", updateCharts);
+    premiumSlider.addEventListener("input", updateCharts);
+    expirationDate.addEventListener("change", () => {
+      console.log("Data di scadenza selezionata:", expirationDate.value);
+    });
+
+    updateCharts();
+  </script>
+</body>
+</html>
